@@ -1,0 +1,125 @@
+# Resolves the package that was just published, exactly as a client would, and builds against it.
+#
+# This runs HERE rather than in the private repo on purpose: every failure it can catch is invisible over
+# there. A wrong checksum, an asset that never uploaded, an archive SPM cannot read, a signature Xcode
+# rejects, a module interface a compiler cannot parse — the private repo's CI builds from source and sees
+# none of them. This job is the first consumer of the thing clients consume.
+name: Verify the published package
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to verify (e.g. v2.0.0)'
+        required: true
+
+jobs:
+  verify:
+    runs-on: macos-15
+    steps:
+      - name: Resolve the tag under test
+        run: |
+          set -euo pipefail
+          TAG="${{ github.event.inputs.tag || github.event.release.tag_name }}"
+          echo "TAG=$TAG" >> "$GITHUB_ENV"
+          echo "VERSION=${TAG#v}" >> "$GITHUB_ENV"
+
+      # A throwaway package that depends on the published tag. No .xcodeproj is needed: xcodebuild builds a
+      # Swift package's scheme directly, which is enough to prove the artifact downloads, verifies against its
+      # checksum, and exposes a module this toolchain can import.
+      - name: Build a consumer against the published tag
+        run: |
+          set -euo pipefail
+          mkdir -p probe/Sources/Probe
+          cd probe
+
+          cat > Package.swift <<'EOF'
+          // swift-tools-version: 5.9
+          import PackageDescription
+
+          let package = Package(
+              name: "Probe",
+              platforms: [.iOS(.v15)],
+              products: [.library(name: "Probe", targets: ["Probe"])],
+              dependencies: [
+                  .package(url: "https://github.com/tappgo/tapp-ios", exact: "TAPP_VERSION")
+              ],
+              targets: [
+                  .target(name: "Probe", dependencies: [.product(name: "TappGo", package: "tapp-ios")])
+              ]
+          )
+          EOF
+          sed -i '' "s/TAPP_VERSION/${VERSION}/" Package.swift
+
+          # Touches the surface a client actually calls, including one type behind the 17.2 availability gate —
+          # a module that imports but whose gated types are unusable would otherwise pass.
+          cat > Sources/Probe/Probe.swift <<'EOF'
+          import Foundation
+          import TappGo
+
+          enum Probe {
+
+              static func appSide() throws {
+                  try Tapp.configure(TappAppConfiguration(appGroupIdentifier: "group.com.tappgo.verify"))
+                  try Tapp.setUserID("verify")
+                  _ = Tapp.handleURL(URL(fileURLWithPath: "/"))
+                  _ = try Tapp.activeLiveActivities()
+              }
+
+              static func activities() async throws {
+                  _ = try await Tapp.startLiveActivity(id: "verify", entryID: "screen-1", seconds: 60)
+                  try await Tapp.updateLiveActivity(id: "verify", entryID: "screen-1")
+                  try await Tapp.endLiveActivity(id: "verify", entryID: "screen-1")
+                  try await Tapp.logout()
+              }
+
+              @available(iOS 17.2, *)
+              static func extensionSide() -> Any.Type {
+                  TappLiveActivity.self
+              }
+          }
+          EOF
+
+          xcodebuild build \
+            -scheme Probe \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath ../dd \
+            -clonedSourcePackagesDirPath ../spm
+
+      # What a client downloads must be signed, and must carry the privacy manifest their App Store submission
+      # depends on. Both are properties of the *published artifact*, so this is the only place they can be
+      # checked against reality rather than against the build that produced them.
+      - name: Inspect the downloaded artifact
+        run: |
+          set -euo pipefail
+          XCF="$(find dd spm -name 'TappGo.xcframework' -maxdepth 8 -print -quit)"
+          if [[ -z "$XCF" ]]; then
+            echo "error: no TappGo.xcframework was downloaded — the binary target did not resolve" >&2
+            exit 1
+          fi
+          echo "Resolved: $XCF"
+
+          echo "--- signature ---"
+          codesign --verify --verbose "$XCF"
+          codesign -dv "$XCF" 2>&1 | grep -E 'Authority|TeamIdentifier|Timestamp' || true
+
+          echo "--- slices ---"
+          ls "$XCF"
+
+          echo "--- privacy manifest, per slice ---"
+          for plist in "$XCF"/*/TappGo.framework/PrivacyInfo.xcprivacy; do
+            [[ -f "$plist" ]] || { echo "error: missing $plist" >&2; exit 1; }
+            plutil -lint "$plist"
+          done
+
+          echo "--- reported version, per slice ---"
+          for plist in "$XCF"/*/TappGo.framework/Info.plist; do
+            reported="$(plutil -extract CFBundleShortVersionString raw -o - "$plist")"
+            echo "$(basename "$(dirname "$(dirname "$plist")")") -> $reported"
+            if [[ "$reported" != "${VERSION%%-*}" ]]; then
+              echo "error: published binary reports '$reported', expected '${VERSION%%-*}'" >&2
+              exit 1
+            fi
+          done
