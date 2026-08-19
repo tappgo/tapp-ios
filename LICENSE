@@ -1,0 +1,121 @@
+TappGo iOS SDK — Software Licence Agreement
+
+Copyright (c) 2026 TAPP AI LTD ("Tapp"). All rights reserved.
+
+READ THIS BEFORE USING THE SOFTWARE. By downloading, installing, linking
+against, or otherwise using the TappGo iOS SDK (the "Software"), you ("you" or
+"Licensee") agree to these terms. If you do not agree, do not use the Software.
+
+1. THE SOFTWARE
+
+   The Software is the TappGo iOS SDK, distributed as a compiled binary
+   framework (TappGo.xcframework) together with its documentation. Source code
+   is not distributed and is not part of the Software.
+
+2. LICENCE GRANT
+
+   2.1 Commercial use. Subject to a separate written agreement between you and
+       Tapp (a "Commercial Agreement") being in force, Tapp grants you a
+       non-exclusive, non-transferable, non-sublicensable, revocable licence to
+       install and use the Software solely to develop, test, and distribute your
+       own applications that use the Tapp service.
+
+   2.2 Evaluation. Absent a Commercial Agreement, you may use the Software only
+       for internal evaluation and testing, for up to thirty (30) days, and not
+       in any application distributed to the public or used in production.
+
+   2.3 No other rights. All rights not expressly granted are reserved. This file
+       grants no right to the Tapp service itself, which requires credentials
+       issued by Tapp.
+
+3. RESTRICTIONS
+
+   You may not:
+
+   (a) redistribute, publish, sublicense, sell, rent, lease, or lend the
+       Software, except as embedded in and not separable from your own
+       application;
+
+   (b) reverse engineer, decompile, or disassemble the Software, or attempt to
+       derive its source code, except and only to the extent that applicable law
+       expressly permits despite this restriction;
+
+   (c) modify the Software or create derivative works of it;
+
+   (d) remove, obscure, or alter any copyright, trade mark, or other proprietary
+       notice, or the Software's code signature;
+
+   (e) use the Software to build, or to assist anyone in building, a product or
+       service that competes with the Tapp service; or
+
+   (f) use the Software other than in accordance with applicable law and the
+       terms of the platforms on which your application is distributed.
+
+4. OWNERSHIP
+
+   The Software is licensed, not sold. Tapp and its licensors retain all right,
+   title, and interest in and to the Software, including all intellectual
+   property rights in it.
+
+5. DATA
+
+   The Software transmits data to Tapp in order to function, and reports product
+   analytics. What it sends is documented in docs/ANALYTICS-EVENTS.md, and the
+   Software ships an Apple privacy manifest declaring its data collection and its
+   use of required-reason APIs. You are responsible for your own application's
+   privacy disclosures, including any App Store privacy declarations that follow
+   from your use of the Software, and for having any consent or notice your
+   jurisdiction requires for the data your application causes to be sent.
+
+6. UPDATES AND CHANGES
+
+   Tapp may issue new versions of the Software. Tapp is under no obligation to
+   maintain, support, or continue to make available any version.
+
+7. TERM AND TERMINATION
+
+   This licence takes effect when you first use the Software and continues until
+   terminated. It terminates automatically if you breach any term, and, for a
+   licence under section 2.1, when the Commercial Agreement ends. On termination
+   you must stop using the Software and remove it from your development
+   environments and from applications you distribute thereafter. Sections 3, 4,
+   8, 9, and 10 survive termination.
+
+8. NO WARRANTY
+
+   THE SOFTWARE IS PROVIDED "AS IS" AND "AS AVAILABLE", WITHOUT WARRANTY OF ANY
+   KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES
+   OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, TITLE, AND
+   NON-INFRINGEMENT. TAPP DOES NOT WARRANT THAT THE SOFTWARE WILL BE
+   UNINTERRUPTED OR ERROR-FREE, OR THAT IT WILL OPERATE WITH ANY PARTICULAR
+   HARDWARE, OPERATING SYSTEM VERSION, OR THIRD-PARTY SOFTWARE.
+
+9. LIMITATION OF LIABILITY
+
+   TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, TAPP SHALL NOT BE LIABLE
+   FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, OR
+   FOR ANY LOSS OF PROFITS, REVENUE, DATA, OR GOODWILL, ARISING OUT OF OR
+   RELATING TO THE SOFTWARE. TAPP'S TOTAL AGGREGATE LIABILITY ARISING OUT OF OR
+   RELATING TO THE SOFTWARE SHALL NOT EXCEED THE GREATER OF (A) THE AMOUNTS YOU
+   PAID TO TAPP UNDER THE COMMERCIAL AGREEMENT IN THE TWELVE (12) MONTHS
+   PRECEDING THE CLAIM, AND (B) ONE HUNDRED US DOLLARS (USD 100). NOTHING IN
+   THIS SECTION LIMITS LIABILITY THAT CANNOT BE LIMITED UNDER APPLICABLE LAW.
+
+10. GENERAL
+
+   10.1 Precedence. If you have a Commercial Agreement with Tapp, that agreement
+        controls to the extent it conflicts with this file.
+
+   10.2 Governing law. This licence is governed by the laws of Israel,
+        without regard to its conflict-of-laws rules, and the courts of
+        Tel Aviv have exclusive jurisdiction.
+
+   10.3 Entire agreement; severability. This file is the entire agreement
+        concerning the Software absent a Commercial Agreement. If any provision
+        is held unenforceable, the rest remains in effect.
+
+   10.4 Assignment. You may not assign this licence without Tapp's prior written
+        consent. Tapp may assign it in connection with a merger, acquisition, or
+        sale of assets.
+
+Questions about licensing: contact@tappgo.com
