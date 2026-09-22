@@ -1,9 +1,13 @@
 # Resolves the package that was just published, exactly as a client would, and builds against it.
 #
-# This runs HERE rather than in the private repo on purpose: every failure it can catch is invisible over
+# This runs HERE rather than in the private repos on purpose: every failure it can catch is invisible over
 # there. A wrong checksum, an asset that never uploaded, an archive SPM cannot read, a signature Xcode
-# rejects, a module interface a compiler cannot parse — the private repo's CI builds from source and sees
+# rejects, a module interface a compiler cannot parse — the private repos' CI builds from source and sees
 # none of them. This job is the first consumer of the thing clients consume.
+#
+# One leg per way a client can take the package: Core alone, Core with Live Activities, Core with Widgets,
+# and all three. A product that only resolves in the company of another is a packaging bug no single probe
+# would show.
 name: Verify the published package
 
 on:
@@ -12,11 +16,15 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Tag to verify (e.g. v2.0.0)'
+        description: 'Tag to verify (e.g. v2.1.0)'
         required: true
 
 jobs:
   verify:
+    strategy:
+      fail-fast: false
+      matrix:
+        selection: [core, live-activities, widgets, all]
     runs-on: macos-15
     steps:
       - name: Resolve the tag under test
@@ -27,15 +35,29 @@ jobs:
           echo "VERSION=${TAG#v}" >> "$GITHUB_ENV"
 
       # A throwaway package that depends on the published tag. No .xcodeproj is needed: xcodebuild builds a
-      # Swift package's scheme directly, which is enough to prove the artifact downloads, verifies against its
-      # checksum, and exposes a module this toolchain can import.
+      # Swift package's scheme directly, which is enough to prove the artifacts download, verify against
+      # their checksums, and expose modules this toolchain can import.
       - name: Build a consumer against the published tag
+        env:
+          SELECTION: ${{ matrix.selection }}
         run: |
           set -euo pipefail
           mkdir -p probe/Sources/Probe
           cd probe
 
-          cat > Package.swift <<'EOF'
+          case "$SELECTION" in
+            core)            PRODUCTS="Tapp" ;;
+            live-activities) PRODUCTS="Tapp TappLiveActivities" ;;
+            widgets)         PRODUCTS="Tapp TappWidgets" ;;
+            all)             PRODUCTS="Tapp TappLiveActivities TappWidgets" ;;
+          esac
+
+          DEPENDENCIES=""
+          for product in $PRODUCTS; do
+            DEPENDENCIES+="                      .product(name: \"${product}\", package: \"tapp-ios\"),"$'\n'
+          done
+
+          cat > Package.swift <<EOF_PACKAGE
           // swift-tools-version: 5.9
           import PackageDescription
 
@@ -44,43 +66,66 @@ jobs:
               platforms: [.iOS(.v15)],
               products: [.library(name: "Probe", targets: ["Probe"])],
               dependencies: [
-                  .package(url: "https://github.com/tappgo/tapp-ios", exact: "TAPP_VERSION")
+                  .package(url: "https://github.com/tappgo/tapp-ios", exact: "${VERSION}")
               ],
               targets: [
-                  .target(name: "Probe", dependencies: [.product(name: "TappGo", package: "tapp-ios")])
+                  .target(name: "Probe", dependencies: [
+          ${DEPENDENCIES}        ])
               ]
           )
-          EOF
-          sed -i '' "s/TAPP_VERSION/${VERSION}/" Package.swift
+          EOF_PACKAGE
 
-          # Touches the surface a client actually calls, including one type behind the 17.2 availability gate —
-          # a module that imports but whose gated types are unusable would otherwise pass.
-          cat > Sources/Probe/Probe.swift <<'EOF'
+          # Touches the surface a client actually calls. Each module's file exists only in the legs that
+          # select it, so a leg cannot pass by never importing what it claims to verify.
+          cat > Sources/Probe/CoreProbe.swift <<'EOF_SWIFT'
           import Foundation
-          import TappGo
+          import Tapp
 
-          enum Probe {
-
+          enum CoreProbe {
               static func appSide() throws {
                   try Tapp.configure(TappAppConfiguration(appGroupIdentifier: "group.com.tappgo.verify"))
                   try Tapp.setUserID("verify")
-                  _ = Tapp.handleURL(URL(fileURLWithPath: "/"))
-                  _ = try Tapp.activeLiveActivities()
+                  Tapp.handleURL(URL(fileURLWithPath: "/"))
               }
 
-              static func activities() async throws {
-                  _ = try await Tapp.startLiveActivity(id: "verify", entryID: "screen-1", seconds: 60)
-                  try await Tapp.updateLiveActivity(id: "verify", entryID: "screen-1")
-                  try await Tapp.endLiveActivity(id: "verify", entryID: "screen-1")
+              static func session() async throws {
                   try await Tapp.logout()
               }
+          }
+          EOF_SWIFT
 
-              @available(iOS 17.2, *)
-              static func extensionSide() -> Any.Type {
-                  TappLiveActivity.self
+          if [[ " $PRODUCTS " == *" TappLiveActivities "* ]]; then
+          cat > Sources/Probe/LiveActivitiesProbe.swift <<'EOF_SWIFT'
+          import Foundation
+          import TappLiveActivities
+
+          enum LiveActivitiesProbe {
+              static func appSide() async throws {
+                  _ = try TappLiveActivities.active()
+                  try await TappLiveActivities.end(id: "verify", entryID: "screen-1")
+              }
+
+              static func extensionSide() throws {
+                  try TappLiveActivities.configureExtension(appGroupIdentifier: "group.com.tappgo.verify")
               }
           }
-          EOF
+          EOF_SWIFT
+          fi
+
+          if [[ " $PRODUCTS " == *" TappWidgets "* ]]; then
+          cat > Sources/Probe/WidgetsProbe.swift <<'EOF_SWIFT'
+          import Foundation
+          import TappWidgets
+
+          enum WidgetsProbe {
+              static func appSide() throws {
+                  TappWidgets.configure()
+                  _ = try TappWidgets.isInstalled()
+                  try TappWidgets.showNextEntry()
+              }
+          }
+          EOF_SWIFT
+          fi
 
           xcodebuild build \
             -scheme Probe \
@@ -88,38 +133,53 @@ jobs:
             -derivedDataPath ../dd \
             -clonedSourcePackagesDirPath ../spm
 
-      # What a client downloads must be signed, and must carry the privacy manifest their App Store submission
-      # depends on. Both are properties of the *published artifact*, so this is the only place they can be
-      # checked against reality rather than against the build that produced them.
-      - name: Inspect the downloaded artifact
+      # What a client downloads must be signed, must report the version it was published as, and Core must
+      # carry the privacy manifest an App Store submission depends on. All are properties of the *published
+      # artifacts*, so this is the only place they can be checked against reality.
+      - name: Inspect the downloaded artifacts
+        env:
+          SELECTION: ${{ matrix.selection }}
         run: |
           set -euo pipefail
-          XCF="$(find dd spm -name 'TappGo.xcframework' -maxdepth 8 -print -quit)"
-          if [[ -z "$XCF" ]]; then
-            echo "error: no TappGo.xcframework was downloaded — the binary target did not resolve" >&2
-            exit 1
-          fi
-          echo "Resolved: $XCF"
+          case "$SELECTION" in
+            core)            EXPECTED="Tapp" ;;
+            live-activities) EXPECTED="Tapp TappLiveActivities" ;;
+            widgets)         EXPECTED="Tapp TappWidgets" ;;
+            all)             EXPECTED="Tapp TappLiveActivities TappWidgets" ;;
+          esac
 
-          echo "--- signature ---"
-          codesign --verify --verbose "$XCF"
-          codesign -dv "$XCF" 2>&1 | grep -E 'Authority|TeamIdentifier|Timestamp' || true
-
-          echo "--- slices ---"
-          ls "$XCF"
-
-          echo "--- privacy manifest, per slice ---"
-          for plist in "$XCF"/*/TappGo.framework/PrivacyInfo.xcprivacy; do
-            [[ -f "$plist" ]] || { echo "error: missing $plist" >&2; exit 1; }
-            plutil -lint "$plist"
-          done
-
-          echo "--- reported version, per slice ---"
-          for plist in "$XCF"/*/TappGo.framework/Info.plist; do
-            reported="$(plutil -extract CFBundleShortVersionString raw -o - "$plist")"
-            echo "$(basename "$(dirname "$(dirname "$plist")")") -> $reported"
-            if [[ "$reported" != "${VERSION%%-*}" ]]; then
-              echo "error: published binary reports '$reported', expected '${VERSION%%-*}'" >&2
+          for module in $EXPECTED; do
+            XCF="$(find dd spm -name "${module}.xcframework" -maxdepth 8 -print -quit)"
+            if [[ -z "$XCF" ]]; then
+              echo "error: no ${module}.xcframework was downloaded — the binary target did not resolve" >&2
               exit 1
             fi
+            echo "=== ${module}: $XCF"
+
+            codesign --verify --verbose "$XCF"
+            codesign -dv "$XCF" 2>&1 | grep -E 'Authority|TeamIdentifier|Timestamp' || true
+            ls "$XCF"
+
+            for plist in "$XCF"/*/"${module}.framework"/Info.plist; do
+              reported="$(plutil -extract CFBundleShortVersionString raw -o - "$plist")"
+              echo "$(basename "$(dirname "$(dirname "$plist")")") -> $reported"
+              if [[ "$reported" != "${VERSION%%-*}" ]]; then
+                echo "error: published ${module} reports '$reported', expected '${VERSION%%-*}'" >&2
+                exit 1
+              fi
+            done
           done
+
+          # Core does the networking and the storage, so Core carries the manifest; the surface modules link
+          # it and declare nothing of their own.
+          CORE_XCF="$(find dd spm -name 'Tapp.xcframework' -maxdepth 8 -print -quit)"
+          for manifest in "$CORE_XCF"/*/Tapp.framework/PrivacyInfo.xcprivacy; do
+            [[ -f "$manifest" ]] || { echo "error: missing $manifest" >&2; exit 1; }
+            plutil -lint "$manifest"
+          done
+
+          # Reported, not asserted: whether SwiftPM fetches the binaries of products a client did not select
+          # is the package manager's behaviour, and it has changed between toolchains. What a client's APP
+          # carries is decided by what it links, which the build above already proved.
+          echo "--- every Tapp binary this resolve downloaded ---"
+          find dd spm -name 'Tapp*.xcframework' -maxdepth 8 -print | sort
