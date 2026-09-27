@@ -1,15 +1,16 @@
-TappGo iOS SDK — Software Licence Agreement
+Tapp iOS SDK — Software Licence Agreement
 
 Copyright (c) 2026 TAPP AI LTD ("Tapp"). All rights reserved.
 
 READ THIS BEFORE USING THE SOFTWARE. By downloading, installing, linking
-against, or otherwise using the TappGo iOS SDK (the "Software"), you ("you" or
+against, or otherwise using the Tapp iOS SDK (the "Software"), you ("you" or
 "Licensee") agree to these terms. If you do not agree, do not use the Software.
 
 1. THE SOFTWARE
 
-   The Software is the TappGo iOS SDK, distributed as a compiled binary
-   framework (TappGo.xcframework) together with its documentation. Source code
+   The Software is the Tapp iOS SDK, distributed as compiled binary
+   frameworks (Tapp.xcframework, TappLiveActivities.xcframework and
+   TappWidgets.xcframework) together with their documentation. Source code
    is not distributed and is not part of the Software.
 
 2. LICENCE GRANT
