@@ -133,9 +133,9 @@ jobs:
             -derivedDataPath ../dd \
             -clonedSourcePackagesDirPath ../spm
 
-      # What a client downloads must be signed, must report the version it was published as, and Core must
-      # carry the privacy manifest an App Store submission depends on. All are properties of the *published
-      # artifacts*, so this is the only place they can be checked against reality.
+      # What a client downloads must be signed, must report the version it was published as, and Core and
+      # TappWidgets must carry the privacy manifests an App Store submission depends on. All are properties of
+      # the *published artifacts*, so this is the only place they can be checked against reality.
       - name: Inspect the downloaded artifacts
         env:
           SELECTION: ${{ matrix.selection }}
@@ -170,12 +170,20 @@ jobs:
             done
           done
 
-          # Core does the networking and the storage, so Core carries the manifest; the surface modules link
-          # it and declare nothing of their own.
-          CORE_XCF="$(find dd spm -name 'Tapp.xcframework' -maxdepth 8 -print -quit)"
-          for manifest in "$CORE_XCF"/*/Tapp.framework/PrivacyInfo.xcprivacy; do
-            [[ -f "$manifest" ]] || { echo "error: missing $manifest" >&2; exit 1; }
-            plutil -lint "$manifest"
+          # Every framework that calls a required-reason API carries its own manifest (Apple: an SDK can't rely
+          # on another's). Core declares the data collection and its APIs; TappWidgets declares the two API
+          # categories its own code calls; TappLiveActivities calls none and ships none. Checked only where this
+          # leg selected the product — whether an unselected one is downloaded at all is SwiftPM's call (below) —
+          # and in every slice, since an App Store upload reads the device slice and a glob over the manifest
+          # itself would pass with the simulator's alone.
+          for module in Tapp TappWidgets; do
+            [[ " $EXPECTED " == *" $module "* ]] || continue
+            XCF="$(find dd spm -name "${module}.xcframework" -maxdepth 8 -print -quit)"
+            for framework in "$XCF"/*/"${module}.framework"; do
+              manifest="$framework/PrivacyInfo.xcprivacy"
+              [[ -f "$manifest" ]] || { echo "error: missing $manifest" >&2; exit 1; }
+              plutil -lint "$manifest"
+            done
           done
 
           # Reported, not asserted: whether SwiftPM fetches the binaries of products a client did not select
