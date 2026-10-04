@@ -122,6 +122,7 @@ Native, Cordova, Unity and Flutter:
 
 ```swift
 import WidgetKit
+import SwiftUI
 import AppIntents
 import TappWidgets
 
@@ -159,6 +160,7 @@ may also share one App Group. The extension authenticates and fetches on its own
 
 ```swift
 import WidgetKit
+import SwiftUI
 import TappLiveActivities
 
 @main
