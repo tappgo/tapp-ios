@@ -8,6 +8,68 @@ One version covers all three frameworks — `Tapp`, `TappLiveActivities`, `TappW
 rebuilds all three. A version's section names, under its own heading, each framework that changed; a framework
 with no heading in a section shipped in that version rebuilt from unchanged source.
 
+## [2.2.0] — 2026-10-04
+
+A smaller SDK that server content cannot crash. Nothing was added or renamed, and **five symbols were
+removed from `Tapp`** (below) — if your app names one, that line no longer compiles. All three frameworks
+changed. **One thing to do on your side** — the privacy manifest declares two more data types, so
+your App Store privacy answers need them.
+
+- **About 40% smaller.** The three frameworks together add roughly 1.5 MB to an App Store download where
+  2.1.0 added 2.5 MB. The deployment floor is still iOS 15.0.
+- **React Native, Cordova, Unity and Flutter hosts change no code** — only the version pin. The bridge has
+  the same members, the same JSON and the same error codes. The App Store privacy answers below apply to
+  them too: their iOS app ships the same frameworks.
+
+### Tapp
+
+- **Removed: `Tapp.isSupported`.** Use `if #available(iOS 17.2, *)` where you branched on it. You do not need
+  either before calling the SDK: below iOS 17.2 every call still returns its neutral answer.
+- **Removed: `Tapp.registerInteractionControls(_:)`, `TappInteractionControlProviding` and
+  `TappInteractionRequest`.** They were the SDK's own wiring for widget taps, which `TappWidgets` sets up for
+  you; there is nothing to replace them with and widget taps work as before.
+- **Removed: `TappWidgetSize`.** No call ever took or returned one — you place `TappSmallWidget` and
+  `TappMediumWidget` — so there is nothing to replace it with. Widgets already on a Home Screen are unaffected.
+- **Privacy manifest: add Performance Data and Other Diagnostic Data to your App Store privacy answers.**
+  Both are declared as linked to the user, not used for tracking, for App Functionality. They cover the
+  remote diagnostics Tapp can switch on for an install: the memory a render used, a closed set of failure
+  codes, and the device model and OS, app and SDK versions. Nothing your app authors, no user id and no
+  token is part of them.
+- **Server content can no longer crash the process that draws it.** A mirror that reflects itself draws
+  nothing instead of recursing; a design nested deeper than 32 levels is cut there; a number too large for
+  the device reads as absent; an image sized zero or with no valid size decodes nothing. A countdown runs for
+  at most about 68 years and a text shows at most 1,024 characters — from the server or from
+  `setCountdownDuration` and `setText`, whose return values are unchanged.
+- A widget no longer signs your app's new session out. After your app signed a member out and back in, the
+  widget's next request could discard the session the app had just established.
+- An image that declares one side takes the other from the picture as it is drawn. A photo stored with a
+  quarter-turn rotation — the usual case for a portrait phone photo — used to get a frame with its
+  proportions turned on their side.
+- Less memory after `Tapp.configure`, and the SDK opens no network session until its first request.
+
+### TappWidgets
+
+- **Ships its own privacy manifest**, declaring the two required-reason APIs it calls (System Boot Time and
+  File Timestamp). Without it an App Store upload could draw ITMS-91053. Nothing to do on your side.
+- **A widget drawing what your app pre-warmed sends no network request**, and the app's pre-warm now fetches
+  the artwork of every screen the campaign declares. Moving to another screen — a tap, a countdown ending,
+  `moveToEntry` — shows its images at once instead of downloading them in the extension. The first launch
+  after a content change downloads more in the app.
+- Lower memory in the widget extension: a render decodes each image once however many times it is drawn,
+  and a placeholder decodes none.
+- The app no longer asks WidgetKit to reload until a Tapp widget has been drawn on this install, which
+  makes launch cheaper for a player who never added one. A widget added later draws the pre-warmed content
+  on its own first request.
+- Picture in Picture can no longer crash your app at start if a future iOS removes the private call that
+  sends the app to the background; the window then opens over the app instead.
+- Editing a stored screen that holds a number JSON cannot write back returns `false` instead of aborting.
+
+### TappLiveActivities
+
+- A pushed start time, anchor or duration that no device can represent — infinite, not a number, or out of
+  range — reads as absent instead of crashing the app on the tap that opens the card.
+- A content-state variable nested deeper than 32 levels is skipped; the rest of the state still applies.
+
 ## [2.1.0] — 2026-09-27
 
 Adds **home-screen widgets**, and ships the SDK as **three frameworks** instead of one. The second part is a

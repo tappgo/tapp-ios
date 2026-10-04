@@ -63,7 +63,7 @@ so the whole JSON facade is present in every build; a call belonging to a framew
 
 **The two iOS numbers are deliberately different.** A framework whose minimum is 17.2 cannot be linked by
 an iOS 15 app at all, which would block you from integrating over a feature you may not be using. So the
-SDK links into an iOS 15 app and, on anything below 17.2, **does nothing and says so in the log**: every
+SDK links into an iOS 15 app and, on anything below 17.2, **does nothing**: every
 entry point returns its neutral answer — `handleURL` returns `false`, `TappLiveActivities.active()` returns
 `[]`, `TappLiveActivities.start` returns an empty id, the widget commands and `TappWidgets.isInstalled` return `false`,
 `TappWidgets.pendingLink()` returns `nil`, `validateToken` returns an invalid answer, and `configure`,
@@ -354,9 +354,7 @@ names the failure as well as describing it.
 | `Tapp.setUserID(_:)` | Record the player. Returns as soon as the id is written; the session settles in the background, so do not present it as "sign-in complete". |
 | `Tapp.logout()` | End the session and return to a guest one. |
 | `Tapp.handleURL(_:)` | Offer a URL to the SDK. `false` means it is yours to handle. |
-| `Tapp.isSupported` | Whether this system is at or above the iOS 17.2 runtime floor. Below it every call returns its neutral answer. |
 | `Tapp.sdkVersion` | The version the loaded binary reports to the back office. |
-| `Tapp.registerInteractionControls(_:)` · `TappInteractionControlProviding` · `TappInteractionRequest` | How a surface supplies the `Button(intent:)` a tappable node needs. `TappWidgets` registers its own; an app only calls this to supply its own. |
 | `TappLiveActivities.start(id:entryID:seconds:)` | Start a card. Returns the system activity id. |
 | `TappLiveActivities.update(id:entryID:seconds:)` | Reload the card that `id`/`entryID` names. A pair that is not running is a no-op, not a failure. |
 | `TappLiveActivities.end(id:entryID:seconds:)` | End it. Here `seconds` is a dismissal delay. |
@@ -371,7 +369,7 @@ names the failure as well as describing it.
 | `TappWidgets.startPictureInPicture(_:)` / `TappWidgets.stopPictureInPicture()` | The floating video window. |
 | `TappAppConfiguration` · `TappWidgetConfiguration` · `TappLiveActivityConfiguration` · `TappPictureInPictureConfiguration` | What you hand the four `configure`-shaped calls. |
 | `TappSmallWidget()` / `TappSmallWidget(slot:)` · `TappMediumWidget()` / `TappMediumWidget(slot:)` · `TappLiveActivity()` | The views you place in a `WidgetBundle`; a widget names the slot of the `TappWidgetConfiguration` it draws, and no argument means slot 0. |
-| `TappWidgets.all` · `TappWidgetSize` | `all` is every configured slot as one `WidgetBundle` body, for an extension that would rather not list them by hand. `TappWidgetSize` (`small`, `medium`) is the size vocabulary widgets are offered at. |
+| `TappWidgets.all` | Every configured slot as one `WidgetBundle` body, for an extension that would rather not list them by hand. |
 | `TappWidgetIntentsPackage` | Surfaces the SDK's App Intents to your widget extension. |
 | `TappLiveActivityInfo` · `TappLiveActivityState` | What `TappLiveActivities.active()` returns. `state` is an **open set** — keep a value you do not recognise and treat it as still running; only `ended` and `dismissed` mean finished. |
 | `TappTokenValidation` | What `validateToken` returns: `isValid`, and `prize` / `userID` when there are any. |
@@ -416,29 +414,33 @@ The certificate's SHA-256 fingerprint is:
 
 ## Symbolicating crash reports
 
-The frameworks ship stripped, so a crash report shows Tapp frames as raw addresses until the matching debug
-symbols are on your Mac. Every release carries them beside the binaries: download
-`<Module>-<version>-dSYMs.zip` for each module you link, from the release you integrate, and unzip them
-anywhere Spotlight indexes — your
-project folder, or `~/Library/Developer/Xcode/Archives`. Xcode's Organizer finds a dSYM by UUID, so the
-location is yours to choose. If a crash reporter symbolicates for you, hand it the same file through that
-reporter's upload (`upload-symbols` for Crashlytics, `sentry-cli debug-files upload` for Sentry).
+The frameworks ship stripped, so Tapp frames in a crash report are raw addresses until the matching debug
+symbols are added. Every release carries them beside the binaries: `<Module>-<version>-dSYMs.zip` for `Tapp`
+and for each of `TappWidgets` and `TappLiveActivities` you link. Upload them to your crash reporter with your
+app's own symbols (`upload-symbols` for Crashlytics, `sentry-cli debug-files upload` for Sentry), or unzip
+them anywhere Spotlight indexes for Xcode's Organizer — always the dSYMs of the exact release you ship.
 
-It must be the dSYM of the exact version in the crash — check the UUID:
-
-```bash
-dwarfdump --uuid dSYMs/<version>/ios/Tapp.framework.dSYM
-```
-
-and compare it against that module's line under "Binary Images" in the crash report. A crash in a Tapp
-frame names the module it happened in, so you often need only that one module's dSYM.
+Have a raw crash report whose Tapp frames you can't read? Send it to us (see [Support](#support)) and we'll
+symbolicate it.
 
 ## Privacy
 
-The SDK ships an Apple **privacy manifest** (`PrivacyInfo.xcprivacy`) inside the framework, declaring its
-data collection and its use of required-reason APIs. Xcode folds it into your app's privacy report, so you
-do not describe the binary's behaviour on its behalf — but **your own App Store privacy answers must
-account for what it collects.**
+The SDK ships an Apple **privacy manifest** (`PrivacyInfo.xcprivacy`) inside `Tapp` and inside `TappWidgets`,
+declaring its data collection and its use of required-reason APIs. Xcode folds them into your app's privacy
+report, so you do not describe the binaries' behaviour on their behalf — but **your own App Store privacy
+answers must account for what it collects.**
+
+| Data type | Linked to the user | Used for tracking | Purpose |
+|---|---|---|---|
+| User ID | Yes | No | App Functionality, Analytics |
+| Product Interaction | Yes | No | Analytics |
+| Other Data Types | Yes | No | Analytics |
+| Performance Data | Yes | No | App Functionality |
+| Other Diagnostic Data | Yes | No | App Functionality |
+
+Performance Data and Other Diagnostic Data are new in 2.2.0. They cover diagnostics Tapp can switch on for
+an install — the memory a render used, a closed set of failure codes, the device model and the OS, app and
+SDK versions — and never carry anything your app authors, a user id or a token.
 
 It declares no tracking and no tracking domains: no advertising identifier, no device or session
 fingerprint, no location. There is no tracking API for your app to call, so nothing your app authors can
