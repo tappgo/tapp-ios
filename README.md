@@ -332,7 +332,7 @@ string, and the wording may change in any release.
 | `pictureInPictureUnsupported` | The device cannot show Picture in Picture. |
 | `pictureInPictureBackgroundAudioMissing` | The app target declares no `audio` background mode. |
 | `pictureInPictureVideoUnavailable` | The URL is not playable. |
-| `pictureInPictureStartFailed` | No active window scene, a start already in flight, or the system never reported the presentation possible. |
+| `pictureInPictureStartFailed` | No active window scene, a start already in flight, the video never started playing, or the start was abandoned: the user returned to the app, or the presentation was stopped or failed, before it finished. `message` carries the reason. |
 
 Across the bridge (React Native, Unity, Flutter, Cordova) three more codes exist that a native host never
 sees: `invalidRequest` (the request JSON did not decode, or missed a field), `unexpected` (a failure the

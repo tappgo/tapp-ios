@@ -8,6 +8,25 @@ One version covers all three frameworks — `Tapp`, `TappLiveActivities`, `TappW
 rebuilds all three. A version's section names, under its own heading, each framework that changed; a framework
 with no heading in a section shipped in that version rebuilt from unchanged source.
 
+## [2.2.1] — 2026-10-05
+
+Three Picture in Picture fixes in `TappWidgets`. Nothing was added, removed or renamed, and there is nothing to
+do on your side beyond the version. `Tapp` and `TappLiveActivities` have no code changes; they are rebuilt with it.
+
+### TappWidgets
+
+- **A tap on the window's restore control now delivers its deep link.** The window was closed as your app came
+  forward, before iOS reported the restore, so the `deepLink` never reached `pendingLink()`. A return from your
+  app's icon closes the window within a second, usually with no link: iOS decides which return counts as a
+  restore, and when it reports one the link is delivered.
+- **A start that fails no longer stops your app's own audio.** If your app was already playing audio, a video
+  that could not start left it silent, with no error or notification to recover on. With your app in front, the
+  SDK now leaves the audio session active and puts back only its category.
+- **A start no longer sends away an app the user has just come back to.** A user who left your app and returned
+  while a start was under way had the app sent to the background, with no window to show. `startPictureInPicture`
+  now throws `TappError.pictureInPictureStartFailed` instead, and so does a start your app stops before it
+  finishes.
+
 ## [2.2.0] — 2026-10-04
 
 A smaller SDK that server content cannot crash. Nothing was added or renamed, and **five symbols were
