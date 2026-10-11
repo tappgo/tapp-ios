@@ -8,6 +8,39 @@ One version covers all three frameworks — `Tapp`, `TappLiveActivities`, `TappW
 rebuilds all three. A version's section names, under its own heading, each framework that changed; a framework
 with no heading in a section shipped in that version rebuilt from unchanged source.
 
+## [2.2.2] — 2026-10-11
+
+A widget link in your app's own URL scheme now reaches your app through `TappWidgets.pendingLink()`, plus three
+widget fixes. Nothing was added, removed or renamed. **One thing to do on your side** if your app reads widget
+links in `onOpenURL` (below). `TappLiveActivities` has no code changes; it is rebuilt with it.
+
+### TappWidgets
+
+- **A widget link in your app's own URL scheme now waits in `pendingLink()` instead of being opened.** A Collect
+  tap opened its claim link, `tapp://collect?…&token=…`, through iOS, which hands a scheme to *any* installed app
+  that claims it: with two Tapp apps on one iPhone, the tap could open the other app and give it the claim token,
+  while the app that was tapped received nothing. A link whose scheme your app declares in `CFBundleURLTypes` now
+  waits in `pendingLink()`, as a link with no scheme always has, and never reaches `onOpenURL`. A link in any
+  other scheme is opened by iOS as before.
+  **What to change:** read `pendingLink()` when your app becomes active and once more about half a second later,
+  because the link is parked a few tens of milliseconds after activation. Keep the scheme declared: that is how
+  the SDK recognises the link as your app's own. Hosts on a wrapper read the bridge's `pendingWidgetLink` the
+  same way. Android already delivers every widget link there.
+- **`validateToken` no longer refuses a real win from your app's second widget.** A claim link does not say which
+  widget it came from, so an app with two widgets could pass the other one's id, and the token was answered
+  invalid. The SDK now asks under the widget on this device that minted the token, whichever of your ids you
+  pass. Nothing changes for an app with one widget.
+- **A widget drawn while offline fills in its pictures soon after the network returns.** It used to keep grey
+  frames where its pictures go until your app was opened or the widget's regular refresh came round. It now asks
+  iOS to redraw it sooner, up to three times (iOS decides when; about five minutes later in practice), before
+  going back to its regular refresh.
+
+### Tapp
+
+- **A widget's background no longer leaves a thin line along two edges** when the widget's shape differs very
+  slightly from its design's canvas, as a medium widget's does on some iPhones. A background authored as the
+  whole canvas now covers that sliver; a canvas of a clearly different shape keeps its margins, as before.
+
 ## [2.2.1] — 2026-10-05
 
 Three Picture in Picture fixes in `TappWidgets`. Nothing was added, removed or renamed, and there is nothing to

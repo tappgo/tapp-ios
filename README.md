@@ -234,15 +234,25 @@ report. An id naming a widget, screen, or node that does not exist **throws** in
 
 ### The claim flow
 
-A payload's claim button carries a link with no scheme — nothing `openURL` can resolve — so the tap brings
-your app forward and parks the link. Collect it when the app becomes active:
+A payload's claim button carries a link with no scheme or one in your app's own scheme
+(`tapp://collect?…&token=…`). Either way the tap brings your app forward and parks the link; it is not opened,
+so it never reaches `onOpenURL`. Collect it when the app becomes active, and once more shortly after, because
+the link is parked a few tens of milliseconds after activation:
 
 ```swift
 .onChange(of: scenePhase) { _, phase in
-    guard phase == .active, let link = TappWidgets.pendingLink() else { return }
+    guard phase == .active, !collectPendingLink() else { return }
+    Task {                                    // the link can land just after activation
+        try? await Task.sleep(for: .milliseconds(500))
+        collectPendingLink()
+    }
+}
 
+@discardableResult
+func collectPendingLink() -> Bool {
+    guard let link = TappWidgets.pendingLink() else { return false }
     guard let token = URLComponents(url: link, resolvingAgainstBaseURL: false)?
-        .queryItems?.first(where: { $0.name == "token" })?.value else { return }
+        .queryItems?.first(where: { $0.name == "token" })?.value else { return true }
 
     Task {
         let answer = await TappWidgets.validateToken(token: token, widgetID: "wheel-1")
@@ -250,17 +260,20 @@ your app forward and parks the link. Collect it when the app becomes active:
         grant(answer.prize)                 // you bank the prize; only you know whether it landed
         _ = try? TappWidgets.showNextEntry() // then drive the campaign on
     }
+    return true
 }
 ```
 
 `TappWidgets.pendingLink()` is **consume-once** — a claim is an event, not a state, and re-reading it on the next
-foreground would advance the campaign twice for one tap. A link that *does* carry a scheme is opened by the
-system instead and reaches your own `onOpenURL`.
+foreground would advance the campaign twice for one tap. A read that finds nothing consumes nothing, so the
+second look is safe. Keep your scheme declared in `CFBundleURLTypes`: that is how the SDK knows a link is your
+app's own. A link in any other scheme is opened by the system, for whichever app claims it.
 
 `validateToken` **never throws**, and `isValid == false` also means "couldn't ask" — no network, a server
 error, an unconfigured SDK. Treat it as *do not grant*, not as proof of tampering, and retry when
-connectivity returns if that distinction matters to you. `widgetID` picks the widget-scoped session whose
-bearer authenticates the request.
+connectivity returns if that distinction matters to you. Pass any of your configured widget ids: when this
+device minted the token under another of your widgets, the SDK asks under that one, since the link does not say
+which widget it came from.
 
 ### Before you prompt someone to add the widget
 
