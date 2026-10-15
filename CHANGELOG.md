@@ -8,6 +8,29 @@ One version covers all three frameworks — `Tapp`, `TappLiveActivities`, `TappW
 rebuilds all three. A version's section names, under its own heading, each framework that changed; a framework
 with no heading in a section shipped in that version rebuilt from unchanged source.
 
+## [2.2.3] — 2026-10-15
+
+One fix for apps on a wrapper (Unity, React Native, Flutter, Cordova): a Live Activity end sent right after its
+start now ends the activity. Nothing was added, removed or renamed, and there is nothing to do on your side
+beyond the version. Apps calling the Swift API directly are unaffected. `TappWidgets` has no code changes; it
+is rebuilt with it.
+
+### Tapp
+
+- **`TappBridge` runs `startLiveActivity`, `updateLiveActivity` and `endLiveActivity` in the order they were
+  called for the same activity.** Each call ran on its own, in no particular order, so an end issued right
+  behind a start, before the start had answered, could reach the SDK first: it found no activity to end,
+  answered `ok`, and the start then put the activity up for good. The three now run in call order for the
+  same `id` and `entryID`; calls for different activities, and every other bridge member, run as before, so a
+  call that must follow one of those is still chained off its completion. `activeLiveActivities()` reports
+  what the system lists at the moment of the call: read it from the completion of the call it should reflect.
+
+### TappLiveActivities
+
+- **Names the activity each of its bridge commands belongs to**, which is what lets `Tapp` keep them in order.
+  `TappLiveActivities.start`, `update` and `end` are unchanged: they are `async`, and Swift code already awaits
+  one before calling the next.
+
 ## [2.2.2] — 2026-10-11
 
 A widget link in your app's own URL scheme now reaches your app through `TappWidgets.pendingLink()`, plus three

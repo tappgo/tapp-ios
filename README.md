@@ -403,6 +403,11 @@ well-formed reply proves the whole chain — symbol resolved, string marshalled,
 `version` against the native version your wrapper claims to embed, and a mismatched pairing is caught at
 integration time rather than by a missing symbol much later.
 
+The bridge's completion-handler members run concurrently, each on its own, with one exception: `startLiveActivity`,
+`updateLiveActivity` and `endLiveActivity` run in the order they were called for the same activity (`id` plus
+`entryID`), so an end issued right behind a start runs after it. Anything else that must follow a call — a
+`setUserID` after `logout`, a stop after a Picture in Picture start — is chained off that call's completion.
+
 **Widgets and Live Activities are always native**, on every platform: your host app ships a real iOS widget
 extension that links this framework and calls `TappWidgets.configureExtension(_:)` in Swift. The bridge covers the
 app side only, which is why there is no `configureWidget` on it. Each wrapper ships extension templates and
