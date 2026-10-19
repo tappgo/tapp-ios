@@ -8,6 +8,57 @@ One version covers all three frameworks — `Tapp`, `TappLiveActivities`, `TappW
 rebuilds all three. A version's section names, under its own heading, each framework that changed; a framework
 with no heading in a section shipped in that version rebuilt from unchanged source.
 
+## [2.3.0] — 2026-10-19
+
+Content in the player's language, and content that varies from one draw to the next. `Tapp.setLanguage(_:)` chooses
+the language Tapp content is requested in, and an image or a text the back office publishes as a **pool** draws one of
+its elements at random each time the content is drawn. One symbol and one bridge member were added; nothing was
+removed or renamed, and there is nothing to do on your side beyond the version unless your app lets the player pick a
+language. Apps on a wrapper (Unity, React Native, Flutter, Cordova) change no code. All three frameworks changed.
+
+### Tapp
+
+- **`Tapp.setLanguage(_:)` sets the language Tapp content is requested in, overriding the device's.** Without it the
+  SDK asks for the device's first preferred language and the server serves the closest language the content is
+  published in, or its base language when there is none. Pass a BCP 47 tag such as `"he"` or `"pt-BR"`, sent as given;
+  `nil`, or an empty or blank tag, follows the device again. The value is stored app-wide and **kept across
+  `logout()`**, like the device's own settings; setting the value the SDK already has does nothing. Today only widget
+  content is published per language, so only `TappWidgets` reads it (below); a Live Activity is unaffected. Device
+  registration reports the override in place of the device's language. Throws `TappError.notConfigured` before
+  `Tapp.configure(_:)`.
+- **The bridge gains `setLanguageWithJSON:`**, taking `{"language":"he-IL"}`, or `{"language":""}` to follow the
+  device, and answering `{"ok":true}`. The key is required: a request without it, or with `null`, is `invalidRequest`,
+  so a wrapper that drops the field by mistake cannot reset the player's choice. Every other bridge member is
+  unchanged.
+- **An image or a text published as a pool draws one of its elements at random.** The back office can now publish an
+  image's `asset` as an array of names, or a text's `text` as an array of strings. The SDK picks one element of each
+  pool, each pool on its own, whenever the content is resolved for drawing, and fetches and caches every element's
+  artwork so any of them can draw offline. A plain image or text decodes and draws exactly as before. Before this
+  release a pool of two or more elements failed to decode, and the widget drew its fallback.
+
+### TappWidgets
+
+- **A widget's content is fetched in the player's language.** Every config request now names a language — the one
+  set with `Tapp.setLanguage(_:)`, else the app's first preferred language, so a per-app language chosen in Settings
+  counts — and the server answers with the screens translated into the closest language the widget is published in.
+  The cache remembers the language it was requested in: a change of language refetches at once, re-warming the
+  configured widgets in the background and reloading their timelines once the new content is cached, and a cache
+  written by an earlier version of the SDK names no language, so it is refetched once after the upgrade. A game under
+  way finishes in the content it started in.
+- **An edit made with `setText` or `setCountdownDuration` stays with the screen it was made on, in that language.** A
+  translated screen is separate content, so after a language switch the edit is not shown there; make it again if it
+  should show in the new language.
+- **A pooled image or text is drawn once per timeline build**, so a timeline's dated snapshots show the same element;
+  the next build draws again.
+
+### TappLiveActivities
+
+- **A pooled image or text in a Live Activity draws once per resolution of its content.** Every re-evaluation of the
+  Lock Screen or the Dynamic Island within one resolution shows the same element, each window draws its own, and new
+  content — or a new extension process — draws again. The Live Activity editor publishes no pools today; this keeps
+  the rule the same as the widget's.
+- **Live Activity content is not published per language**, so `Tapp.setLanguage(_:)` leaves a Live Activity as it is.
+
 ## [2.2.3] — 2026-10-15
 
 One fix for apps on a wrapper (Unity, React Native, Flutter, Cordova): a Live Activity end sent right after its

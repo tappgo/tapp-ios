@@ -368,6 +368,7 @@ names the failure as well as describing it.
 | `TappLiveActivities.configureExtension(appGroupIdentifier:)` | Configure a Live Activity extension. |
 | `Tapp.setUserID(_:)` | Record the player. Returns as soon as the id is written; the session settles in the background, so do not present it as "sign-in complete". |
 | `Tapp.logout()` | End the session and return to a guest one. |
+| `Tapp.setLanguage(_:)` | Set the language Tapp content is requested in, overriding the device's: a BCP 47 tag such as `"he"` or `"pt-BR"`. `nil`, or a blank tag, follows the device again. Kept across `logout()`; setting the value the SDK already has does nothing. Today only widget content is published per language, so a Live Activity is unaffected. |
 | `Tapp.handleURL(_:)` | Offer a URL to the SDK. `false` means it is yours to handle. |
 | `Tapp.sdkVersion` | The version the loaded binary reports to the back office. |
 | `TappLiveActivities.start(id:entryID:seconds:)` | Start a card. Returns the system activity id. |
@@ -407,6 +408,10 @@ The bridge's completion-handler members run concurrently, each on its own, with 
 `updateLiveActivity` and `endLiveActivity` run in the order they were called for the same activity (`id` plus
 `entryID`), so an end issued right behind a start runs after it. Anything else that must follow a call — a
 `setUserID` after `logout`, a stop after a Picture in Picture start — is chained off that call's completion.
+
+`Tapp.setLanguage(_:)` is `setLanguageWithJSON:`, taking `{"language":"he-IL"}`, or `{"language":""}` to follow the
+device again, and answering `{"ok":true}`; the key is required, so a request without it, or with `null`, is
+`invalidRequest` rather than a silent reset of the player's choice.
 
 **Widgets and Live Activities are always native**, on every platform: your host app ships a real iOS widget
 extension that links this framework and calls `TappWidgets.configureExtension(_:)` in Swift. The bridge covers the
