@@ -226,11 +226,29 @@ try TappWidgets.setText(widgetID: "wheel-1", entryID: "screen_1",
 Setting a duration also **restarts the countdown from now**. `nodeID` is the `id` your document gives the
 node, and unlike `entryID` its casing matters.
 
-**Reading the four `Bool`s.** Every call above returns whether anything actually happened, and `false` is
+**Letting the server edit the widget.** The same two edits can come from the Tapp server instead of your
+code, on a cadence the campaign sets. Your app stores the key/value parameters the server should decide on —
+once, and again whenever they change:
+
+```swift
+try TappWidgets.setRemoteUpdateParameters(widgetID: "wheel-1",
+                                          parameters: ["level": "5", "spins_left": "3"])
+```
+
+From then on **the widget asks, your app never does**: whenever a placed widget builds its timeline and its
+schedule says so, it sends the map to the server and applies the edits the answer names — a countdown
+duration, a text — exactly as `setCountdownDuration` and `setText` would. The schedule is the back office's:
+the widget configuration points at a `remoteUpdate` document (`{"policy":"hourly"}`, `{"policy":"daily",
+"hour":9}` in UTC, or `{"policy":"at","date":"…"}` for a one-off), published and cached like the asset
+catalog; a campaign without one never asks. A change of parameters asks on the widget's next build, so the
+first ask after you store them is immediate. Storing the same map again does nothing and answers `false`.
+Nothing is sent from the app process, and the call never touches the network.
+
+**Reading the five `Bool`s.** Every call above returns whether anything actually happened, and `false` is
 never an error: the campaign names a single screen, the widget was already on the screen you asked for,
-nothing has been fetched yet, or the node is not marked editable. There is nothing to undo and nothing to
-report. An id naming a widget, screen, or node that does not exist **throws** instead — a typo answering
-`false` forever would read as "already there" and never get diagnosed.
+nothing has been fetched yet, the node is not marked editable, or the parameters were already stored. There
+is nothing to undo and nothing to report. An id naming a widget, screen, or node that does not exist
+**throws** instead — a typo answering `false` forever would read as "already there" and never get diagnosed.
 
 ### The claim flow
 
@@ -379,6 +397,7 @@ names the failure as well as describing it.
 | `TappWidgets.moveToEntry(widgetID:entryID:)` | Move one widget straight to a named screen. |
 | `TappWidgets.setCountdownDuration(widgetID:entryID:nodeID:seconds:)` | Set an editable countdown and restart it from now. |
 | `TappWidgets.setText(widgetID:entryID:nodeID:text:)` | Set an editable component's text. |
+| `TappWidgets.setRemoteUpdateParameters(widgetID:parameters:)` | Store the key/value parameters the widget sends the server when it asks for remote edits. `false` when the same map was already stored. |
 | `TappWidgets.isInstalled(widgetID:)` | Whether the player added the widget. `widgetID` is optional. |
 | `TappWidgets.pendingLink()` | The link a widget tap or a Picture in Picture restore parked. Consume-once. |
 | `TappWidgets.validateToken(token:widgetID:)` | Ask the server whether a claim token is valid. Never throws. |
