@@ -8,6 +8,45 @@ One version covers all three frameworks — `Tapp`, `TappLiveActivities`, `TappW
 rebuilds all three. A version's section names, under its own heading, each framework that changed; a framework
 with no heading in a section shipped in that version rebuilt from unchanged source.
 
+## [2.4.0] — 2026-11-01
+
+The server can now edit a widget. Your app stores key/value parameters once with
+`TappWidgets.setRemoteUpdateParameters(widgetID:parameters:)`; from then on a placed widget sends them to the Tapp
+server on the cadence its configuration names and applies the countdown and text edits the answer carries, exactly
+as `setCountdownDuration` and `setText` would. One symbol and one bridge member were added; nothing was removed or
+renamed, and an app that does not call the new member sees no change. Apps on a wrapper (Unity, React Native,
+Flutter, Cordova) change no code until their wrapper binds the member. `Tapp` and `TappWidgets` changed;
+`TappLiveActivities` was rebuilt from unchanged source.
+
+### Tapp
+
+- **The bridge gains `setWidgetRemoteUpdateParametersWithJSON:`**, taking `{"widgetID":"…","parameters":{"k":"v"}}`
+  — both keys required, `parameters` an object of strings that may be `{}` — and answering
+  `{"ok":true,"value":{"changed":true}}`, or `changed: false` when the same map was already stored and below the
+  runtime floor. A value that is not a string is `invalidRequest` naming the key. Every other bridge member is
+  unchanged.
+- Three per-widget App Group keys were added for the feature (the cached policy document, the stored parameters —
+  encrypted at rest — and the ask schedule). They are purged on `logout()` with the rest of the widget's cache.
+
+### TappWidgets
+
+- **`TappWidgets.setRemoteUpdateParameters(widgetID:parameters:)` stores the parameters the widget sends the server
+  when it asks for remote edits.** Synchronous and offline: it stores the map, bumps a revision and reloads the
+  widget. Returns `true` when the map changed and `false` when the same map was already stored, so calling it on
+  every foreground cannot defeat the server's cadence. Throws `notConfigured` before `Tapp.configure(_:)`, and
+  `invalidConfiguration` for a blank or undeclared `widgetID`, a blank key, or a map over 8 KB encoded.
+- **The widget asks on its own.** When its configuration points at a `remoteUpdate` document — a `{id, key}` resource
+  beside `assetCatalog`, fetched from `v1/widgets/{id}/remoteUpdate` and cached by key like the catalog — a placed
+  widget `POST`s `{"language":…,"parameters":{…}}` to `v1/widgets/{id}/remote-update` from its own timeline build
+  whenever its schedule says so: `{"policy":"hourly"}`, `{"policy":"daily","hour":9}` (UTC, optional `minute`), or
+  `{"policy":"at","date":"…"}` once. A change of parameters or of the document's key asks on the next build; a
+  failed ask is retried no sooner than fifteen minutes later; never two asks closer than that. The widget applies
+  each edit the reply names (`{"entryId","nodeId","seconds"}` or `{"entryId","nodeId","text"}`) exactly as the two
+  setters would — a countdown edit restarts the clock — skips an item it cannot apply, and schedules its next build
+  for the next due time. The app process sends nothing. A campaign without the document never asks.
+- **`TappWidgets.storedRemoteUpdateStateForDebugging(widgetID:)`**, `DEBUG`-only like its two siblings: the stored
+  parameters, the cached policy document and the schedule the widget's last build left, as strings a harness prints.
+
 ## [2.3.0] — 2026-10-19
 
 Content in the player's language, and content that varies from one draw to the next. `Tapp.setLanguage(_:)` chooses
