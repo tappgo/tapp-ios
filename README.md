@@ -156,6 +156,11 @@ slot. A placed widget is known by its slot, so append new ids and never reorder 
 may also share one App Group. The extension authenticates and fetches on its own when it renders, so it needs the same App Group **and** the
 `keychain-access-groups` entitlement — see the integration guide.
 
+**Moving from an earlier widget?** iOS knows a widget already on a Home Screen by its extension's bundle id and
+its `kind`. Keep the extension's bundle id and declare the old kind — `TappSmallWidget(kind: "PlayableWidget")` —
+and every widget your players placed is drawn by this SDK after the update, with nothing for them to do. Only for a
+kind you already shipped: an app that started on this SDK passes no `kind`.
+
 **In the Live Activity extension**, typically in your `WidgetBundle`:
 
 ```swift
@@ -403,7 +408,7 @@ names the failure as well as describing it.
 | `TappWidgets.validateToken(token:widgetID:)` | Ask the server whether a claim token is valid. Never throws. |
 | `TappWidgets.startPictureInPicture(_:)` / `TappWidgets.stopPictureInPicture()` | The floating video window. |
 | `TappAppConfiguration` · `TappWidgetConfiguration` · `TappLiveActivityConfiguration` · `TappPictureInPictureConfiguration` | What you hand the four `configure`-shaped calls. |
-| `TappSmallWidget()` / `TappSmallWidget(slot:)` · `TappMediumWidget()` / `TappMediumWidget(slot:)` · `TappLiveActivity()` | The views you place in a `WidgetBundle`; a widget names the slot of the `TappWidgetConfiguration` it draws, and no argument means slot 0. |
+| `TappSmallWidget()` / `TappSmallWidget(slot:)` · `TappMediumWidget()` / `TappMediumWidget(slot:)` · `TappLiveActivity()` | The views you place in a `WidgetBundle`; a widget names the slot of the `TappWidgetConfiguration` it draws, and no argument means slot 0. `TappSmallWidget(slot:kind:)` / `TappMediumWidget(slot:kind:)` keep a kind an earlier widget shipped. |
 | `TappWidgets.all` | Every configured slot as one `WidgetBundle` body, for an extension that would rather not list them by hand. |
 | `TappWidgetIntentsPackage` | Surfaces the SDK's App Intents to your widget extension. |
 | `TappLiveActivityInfo` · `TappLiveActivityState` | What `TappLiveActivities.active()` returns. `state` is an **open set** — keep a value you do not recognise and treat it as still running; only `ended` and `dismissed` mean finished. |

@@ -8,6 +8,24 @@ One version covers all three frameworks — `Tapp`, `TappLiveActivities`, `TappW
 rebuilds all three. A version's section names, under its own heading, each framework that changed; a framework
 with no heading in a section shipped in that version rebuilt from unchanged source.
 
+## [2.5.0] — 2026-11-12
+
+Moving to this SDK from an earlier widget no longer costs your players the widgets they placed. iOS knows a placed
+widget by its extension's bundle identifier and its `kind`: keep both — declare the old kind with
+`TappSmallWidget(kind:)` or `TappMediumWidget(kind:)` — and every widget already on a Home Screen is drawn by this
+SDK after the update. Two initializers were added; nothing was removed or renamed, and an app that does not use them
+sees no change. `TappWidgets` changed; `Tapp` and `TappLiveActivities` were rebuilt from unchanged source.
+
+### TappWidgets
+
+- **`TappSmallWidget(slot:kind:)` and `TappMediumWidget(slot:kind:)` declare a widget under a kind you already
+  shipped.** Keep the widget extension's bundle identifier and pass your previous widget's kind (for example
+  `"PlayableWidget"`): the widgets your players placed show this SDK's widget after the update, with nothing for them
+  to do. Only for a kind you already shipped — an app that started on this SDK passes none. One kind keeps one size.
+  A blank kind declares the SDK's own.
+- **A widget switched to a campaign whose configuration version is lower than the previous campaign's now draws the
+  new campaign.** Before, it stayed on its failure card until the new campaign was saved past the old one's version.
+
 ## [2.4.0] — 2026-11-01
 
 The server can now edit a widget. Your app stores key/value parameters once with
