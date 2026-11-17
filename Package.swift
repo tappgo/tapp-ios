@@ -28,18 +28,18 @@ let package = Package(
     targets: [
         .binaryTarget(
             name: "Tapp",
-            url: "https://github.com/tappgo/tapp-ios/releases/download/v2.5.0/Tapp-2.5.0.xcframework.zip",
-            checksum: "f61da228e0af3cb029476f83235e0d18196e597f01d45555aa303a0d9303106b"
+            url: "https://github.com/tappgo/tapp-ios/releases/download/v2.5.1-rc.1/Tapp-2.5.1-rc.1.xcframework.zip",
+            checksum: "0b899388202e7145d23d122cc035a26ad33e2de2d64b6ee32957b77bdada082b"
         ),
         .binaryTarget(
             name: "TappLiveActivities",
-            url: "https://github.com/tappgo/tapp-ios/releases/download/v2.5.0/TappLiveActivities-2.5.0.xcframework.zip",
-            checksum: "4b0edcbfcd1062c854793f8846b640699153da67810756a2624d356157cc8fb0"
+            url: "https://github.com/tappgo/tapp-ios/releases/download/v2.5.1-rc.1/TappLiveActivities-2.5.1-rc.1.xcframework.zip",
+            checksum: "6f656234b96204f27890ff451fe0e87d8e48d1ec9fabfbadbb348bf73931b390"
         ),
         .binaryTarget(
             name: "TappWidgets",
-            url: "https://github.com/tappgo/tapp-ios/releases/download/v2.5.0/TappWidgets-2.5.0.xcframework.zip",
-            checksum: "180aa2f61a4f2f3751c05a4adb80479c8143016b06f9c124d1c2882806856278"
+            url: "https://github.com/tappgo/tapp-ios/releases/download/v2.5.1-rc.1/TappWidgets-2.5.1-rc.1.xcframework.zip",
+            checksum: "ac2ba90dd2bbfaef6a45f04dd9330dcb1fd755871776b84628453b09e643e2d5"
         ),
     ]
 )
