@@ -8,6 +8,26 @@ One version covers all three frameworks — `Tapp`, `TappLiveActivities`, `TappW
 rebuilds all three. A version's section names, under its own heading, each framework that changed; a framework
 with no heading in a section shipped in that version rebuilt from unchanged source.
 
+## [2.5.1] — 2026-11-17
+
+A Live Activity's update token now reaches Tapp while your app is closed, also when your app configures Tapp only
+once it is on screen, as a Unity game does — so Tapp can update and end a card it started without waiting for the
+player to open the app. No API changed, and an app that configures at launch sees no difference.
+`TappLiveActivities` and `Tapp` changed; `TappWidgets` was rebuilt from unchanged source.
+
+### TappLiveActivities
+
+- **The update token is reported from the background launch iOS grants.** When Tapp starts a card while your app is
+  closed, or the player allows Live Activities from the card, iOS launches your app in the background for a few
+  seconds. If your app has called `TappLiveActivities.configure` before, the SDK reports the card's update token in
+  that launch and does nothing else. iOS hands the token over only once the player has allowed Live Activities.
+- **Your configure stays in charge.** An app that stops calling it stops this too, a few seconds after it next comes
+  on screen without it. With no user signed in, nothing is sent.
+
+### Tapp
+
+- Internal support for the above. No API change.
+
 ## [2.5.0] — 2026-11-12
 
 Moving to this SDK from an earlier widget no longer costs your players the widgets they placed. iOS knows a placed
