@@ -242,7 +242,9 @@ try TappWidgets.setRemoteUpdateParameters(widgetID: "wheel-1",
 
 From then on **the widget asks, your app never does**: whenever a placed widget builds its timeline and its
 schedule says so, it sends the map to the server and applies the edits the answer names — a countdown
-duration, a text — exactly as `setCountdownDuration` and `setText` would. The schedule is the back office's:
+duration, a text — exactly as `setCountdownDuration` and `setText` would. The server can also turn a
+component the back office marked editable (`degrees`, for a gauge's needle); no call in your app does that.
+The schedule is the back office's:
 the widget configuration points at a `remoteUpdate` document (`{"policy":"hourly"}`, `{"policy":"daily",
 "hour":9}` in UTC, or `{"policy":"at","date":"…"}` for a one-off), published and cached like the asset
 catalog; a campaign without one never asks. A change of parameters asks on the widget's next build, so the

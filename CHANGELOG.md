@@ -8,6 +8,25 @@ One version covers all three frameworks — `Tapp`, `TappLiveActivities`, `TappW
 rebuilds all three. A version's section names, under its own heading, each framework that changed; a framework
 with no heading in a section shipped in that version rebuilt from unchanged source.
 
+## [2.6.0] — 2026-11-22
+
+A widget can now show a gauge whose needle the Tapp server moves for each player: the back office gives an image a
+pivot of its own, and a remote update can set its angle. No API changed, and an app sees no difference until its
+campaign uses it. Apps on a wrapper (Unity, React Native) get it with the wrapper release that pins this version, with
+nothing to call. `Tapp` and `TappWidgets` changed; `TappLiveActivities` was rebuilt from unchanged source.
+
+### Tapp
+
+- **A component can turn and scale about a point of its own.** The back office sets the pivot (`anchor`), for example
+  a needle's hub; without one a component turns about its centre, as before. Any angle is drawn, a full turn and more
+  included. A spinning wheel still turns about its centre.
+
+### TappWidgets
+
+- **The server can turn a component the back office marked editable.** A remote update may now set its angle
+  (`degrees`) beside a countdown duration and a text. No call in your app does that, and
+  `setRemoteUpdateParameters(widgetID:parameters:)` is unchanged.
+
 ## [2.5.1] — 2026-11-17
 
 A Live Activity's update token now reaches Tapp while your app is closed, also when your app configures Tapp only
