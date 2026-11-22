@@ -8,6 +8,20 @@ One version covers all three frameworks — `Tapp`, `TappLiveActivities`, `TappW
 rebuilds all three. A version's section names, under its own heading, each framework that changed; a framework
 with no heading in a section shipped in that version rebuilt from unchanged source.
 
+## [2.6.1] — 2026-11-22
+
+A widget or Live Activity now looks exactly as it was designed in the back office when the device's language reads
+right to left, such as Hebrew or Arabic. Before, iOS mirrored the whole screen: a title designed on the right drew on
+the left. No API changed, and nothing changes in a left-to-right language. `Tapp` changed; `TappWidgets` and
+`TappLiveActivities` were rebuilt from unchanged source.
+
+### Tapp
+
+- **A screen is no longer mirrored in a right-to-left language.** Positions, the order of side-by-side components, a
+  progress bar's fill and a rotation are drawn as in the back office, and a text still reads in its own language.
+  VoiceOver moves through the screen in the same order. In the Dynamic Island, iOS still decides which side the compact
+  leading and trailing views sit on.
+
 ## [2.6.0] — 2026-11-22
 
 A widget can now show a gauge whose needle the Tapp server moves for each player: the back office gives an image a
