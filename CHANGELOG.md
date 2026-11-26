@@ -10,14 +10,13 @@ with no heading in a section shipped in that version rebuilt from unchanged sour
 
 ## [2.6.1] — 2026-11-22
 
-A widget or Live Activity now looks exactly as it was designed in the back office when the device's language reads
-right to left, such as Hebrew or Arabic. Before, iOS mirrored the whole screen: a title designed on the right drew on
-the left. No API changed, and nothing changes in a left-to-right language. `Tapp` changed; `TappWidgets` and
-`TappLiveActivities` were rebuilt from unchanged source.
+A widget or Live Activity looks exactly as it was designed in the back office when the device's language reads right
+to left, such as Hebrew or Arabic. No API changed, and nothing changes in a left-to-right language. `Tapp` changed;
+`TappWidgets` and `TappLiveActivities` were rebuilt from unchanged source.
 
 ### Tapp
 
-- **A screen is no longer mirrored in a right-to-left language.** Positions, the order of side-by-side components, a
+- **A screen keeps its designed layout in a right-to-left language.** Positions, the order of side-by-side components, a
   progress bar's fill and a rotation are drawn as in the back office, and a text still reads in its own language.
   VoiceOver moves through the screen in the same order. In the Dynamic Island, iOS still decides which side the compact
   leading and trailing views sit on.
@@ -63,7 +62,7 @@ player to open the app. No API changed, and an app that configures at launch see
 
 ## [2.5.0] — 2026-11-12
 
-Moving to this SDK from an earlier widget no longer costs your players the widgets they placed. iOS knows a placed
+Moving to this SDK from an earlier widget keeps the widgets your players placed. iOS knows a placed
 widget by its extension's bundle identifier and its `kind`: keep both — declare the old kind with
 `TappSmallWidget(kind:)` or `TappMediumWidget(kind:)` — and every widget already on a Home Screen is drawn by this
 SDK after the update. Two initializers were added; nothing was removed or renamed, and an app that does not use them
@@ -76,8 +75,8 @@ sees no change. `TappWidgets` changed; `Tapp` and `TappLiveActivities` were rebu
   `"PlayableWidget"`): the widgets your players placed show this SDK's widget after the update, with nothing for them
   to do. Only for a kind you already shipped — an app that started on this SDK passes none. One kind keeps one size.
   A blank kind declares the SDK's own.
-- **A widget switched to a campaign whose configuration version is lower than the previous campaign's now draws the
-  new campaign.** Before, it stayed on its failure card until the new campaign was saved past the old one's version.
+- **A widget switched to another campaign draws the new campaign right away**, whatever the two campaigns'
+  configuration versions.
 
 ## [2.4.0] — 2026-11-01
 
@@ -143,8 +142,7 @@ language. Apps on a wrapper (Unity, React Native, Flutter, Cordova) change no co
 - **An image or a text published as a pool draws one of its elements at random.** The back office can now publish an
   image's `asset` as an array of names, or a text's `text` as an array of strings. The SDK picks one element of each
   pool, each pool on its own, whenever the content is resolved for drawing, and fetches and caches every element's
-  artwork so any of them can draw offline. A plain image or text decodes and draws exactly as before. Before this
-  release a pool of two or more elements failed to decode, and the widget drew its fallback.
+  artwork so any of them can draw offline. A plain image or text decodes and draws exactly as before.
 
 ### TappWidgets
 
@@ -171,20 +169,18 @@ language. Apps on a wrapper (Unity, React Native, Flutter, Cordova) change no co
 
 ## [2.2.3] — 2026-10-15
 
-One fix for apps on a wrapper (Unity, React Native, Flutter, Cordova): a Live Activity end sent right after its
-start now ends the activity. Nothing was added, removed or renamed, and there is nothing to do on your side
-beyond the version. Apps calling the Swift API directly are unaffected. `TappWidgets` has no code changes; it
-is rebuilt with it.
+An ordering improvement for apps on a wrapper (Unity, React Native, Flutter, Cordova): Live Activity calls for the
+same activity run in the order they were made. Nothing was added, removed or renamed, and there is nothing to do
+on your side beyond the version. Apps calling the Swift API directly are unaffected. `TappWidgets` has no code
+changes; it is rebuilt with it.
 
 ### Tapp
 
 - **`TappBridge` runs `startLiveActivity`, `updateLiveActivity` and `endLiveActivity` in the order they were
-  called for the same activity.** Each call ran on its own, in no particular order, so an end issued right
-  behind a start, before the start had answered, could reach the SDK first: it found no activity to end,
-  answered `ok`, and the start then put the activity up for good. The three now run in call order for the
-  same `id` and `entryID`; calls for different activities, and every other bridge member, run as before, so a
-  call that must follow one of those is still chained off its completion. `activeLiveActivities()` reports
-  what the system lists at the moment of the call: read it from the completion of the call it should reflect.
+  called for the same activity** — the same `id` and `entryID` — so an end issued right behind a start follows
+  it. Calls for different activities, and every other bridge member, run as before, so a call that must follow
+  one of those is still chained off its completion. `activeLiveActivities()` reports what the system lists at
+  the moment of the call: read it from the completion of the call it should reflect.
 
 ### TappLiveActivities
 
@@ -195,59 +191,52 @@ is rebuilt with it.
 ## [2.2.2] — 2026-10-11
 
 A widget link in your app's own URL scheme now reaches your app through `TappWidgets.pendingLink()`, plus three
-widget fixes. Nothing was added, removed or renamed. **One thing to do on your side** if your app reads widget
+widget refinements. Nothing was added, removed or renamed. **One thing to do on your side** if your app reads widget
 links in `onOpenURL` (below). `TappLiveActivities` has no code changes; it is rebuilt with it.
 
 ### TappWidgets
 
-- **A widget link in your app's own URL scheme now waits in `pendingLink()` instead of being opened.** A Collect
-  tap opened its claim link, `tapp://collect?…&token=…`, through iOS, which hands a scheme to *any* installed app
-  that claims it: with two Tapp apps on one iPhone, the tap could open the other app and give it the claim token,
-  while the app that was tapped received nothing. A link whose scheme your app declares in `CFBundleURLTypes` now
-  waits in `pendingLink()`, as a link with no scheme always has, and never reaches `onOpenURL`. A link in any
-  other scheme is opened by iOS as before.
+- **A widget link in your app's own URL scheme now waits in `pendingLink()`.** A link whose scheme your app
+  declares in `CFBundleURLTypes`, such as a Collect tap's claim link (`tapp://collect?…&token=…`), is handed
+  straight to your app through `pendingLink()`, as a link with no scheme always has been, rather than through
+  `onOpenURL`. A link in any other scheme is opened by iOS as before.
   **What to change:** read `pendingLink()` when your app becomes active and once more about half a second later,
   because the link is parked a few tens of milliseconds after activation. Keep the scheme declared: that is how
   the SDK recognises the link as your app's own. Hosts on a wrapper read the bridge's `pendingWidgetLink` the
   same way. Android already delivers every widget link there.
-- **`validateToken` no longer refuses a real win from your app's second widget.** A claim link does not say which
-  widget it came from, so an app with two widgets could pass the other one's id, and the token was answered
-  invalid. The SDK now asks under the widget on this device that minted the token, whichever of your ids you
-  pass. Nothing changes for an app with one widget.
-- **A widget drawn while offline fills in its pictures soon after the network returns.** It used to keep grey
-  frames where its pictures go until your app was opened or the widget's regular refresh came round. It now asks
-  iOS to redraw it sooner, up to three times (iOS decides when; about five minutes later in practice), before
-  going back to its regular refresh.
+- **`validateToken` accepts any of your configured widget ids.** A claim link does not say which widget it came
+  from, so the SDK asks under the widget on this device that minted the token, whichever of your ids you pass.
+  Nothing changes for an app with one widget.
+- **A widget drawn while offline fills in its pictures soon after the network returns.** It asks iOS to redraw
+  it sooner, up to three times (iOS decides when; about five minutes later in practice), before going back to
+  its regular refresh.
 
 ### Tapp
 
-- **A widget's background no longer leaves a thin line along two edges** when the widget's shape differs very
-  slightly from its design's canvas, as a medium widget's does on some iPhones. A background authored as the
-  whole canvas now covers that sliver; a canvas of a clearly different shape keeps its margins, as before.
+- **A widget's background covers the whole widget** when the widget's shape differs very slightly from its
+  design's canvas, as a medium widget's does on some iPhones. A canvas of a clearly different shape keeps its
+  margins, as before.
 
 ## [2.2.1] — 2026-10-05
 
-Three Picture in Picture fixes in `TappWidgets`. Nothing was added, removed or renamed, and there is nothing to
+Three Picture in Picture refinements in `TappWidgets`. Nothing was added, removed or renamed, and there is nothing to
 do on your side beyond the version. `Tapp` and `TappLiveActivities` have no code changes; they are rebuilt with it.
 
 ### TappWidgets
 
-- **A tap on the window's restore control now delivers its deep link.** The window was closed as your app came
-  forward, before iOS reported the restore, so the `deepLink` never reached `pendingLink()`. A return from your
-  app's icon closes the window within a second, usually with no link: iOS decides which return counts as a
-  restore, and when it reports one the link is delivered.
-- **A start that fails no longer stops your app's own audio.** If your app was already playing audio, a video
-  that could not start left it silent, with no error or notification to recover on. With your app in front, the
-  SDK now leaves the audio session active and puts back only its category.
-- **A start no longer sends away an app the user has just come back to.** A user who left your app and returned
-  while a start was under way had the app sent to the background, with no window to show. `startPictureInPicture`
-  now throws `TappError.pictureInPictureStartFailed` instead, and so does a start your app stops before it
-  finishes.
+- **A tap on the window's restore control delivers its deep link to `pendingLink()`.** A return from your app's
+  icon closes the window within a second, usually with no link: iOS decides which return counts as a restore,
+  and when it reports one the link is delivered.
+- **Your app's own audio carries on when a presentation does not start.** With your app in front, the SDK
+  leaves the audio session active and puts back only its category.
+- **A start gives way to a user who has just come back to your app.** When the user returns while a start is
+  under way, or your app stops the start before it finishes, the app stays in front and
+  `startPictureInPicture` throws `TappError.pictureInPictureStartFailed`.
 
 ## [2.2.0] — 2026-10-04
 
-A smaller SDK that server content cannot crash. Nothing was added or renamed, and **five symbols were
-removed from `Tapp`** (below) — if your app names one, that line no longer compiles. All three frameworks
+A smaller SDK with more robust handling of server content. Nothing was added or renamed, and **five symbols
+were removed from `Tapp`** (below) — if your app names one, that line needs updating. All three frameworks
 changed. **One thing to do on your side** — the privacy manifest declares two more data types, so
 your App Store privacy answers need them.
 
@@ -271,39 +260,37 @@ your App Store privacy answers need them.
   remote diagnostics Tapp can switch on for an install: the memory a render used, a closed set of failure
   codes, and the device model and OS, app and SDK versions. Nothing your app authors, no user id and no
   token is part of them.
-- **Server content can no longer crash the process that draws it.** A mirror that reflects itself draws
-  nothing instead of recursing; a design nested deeper than 32 levels is cut there; a number too large for
-  the device reads as absent; an image sized zero or with no valid size decodes nothing. A countdown runs for
-  at most about 68 years and a text shows at most 1,024 characters — from the server or from
-  `setCountdownDuration` and `setText`, whose return values are unchanged.
-- A widget no longer signs your app's new session out. After your app signed a member out and back in, the
-  widget's next request could discard the session the app had just established.
-- An image that declares one side takes the other from the picture as it is drawn. A photo stored with a
-  quarter-turn rotation — the usual case for a portrait phone photo — used to get a frame with its
-  proportions turned on their side.
+- **More robust handling of server content.** Content is checked as it is read, so every design draws
+  predictably: a design is read to 32 levels of nesting, a mirror reflects other components and never itself,
+  a number outside the device's range reads as absent, and an image is drawn when it has a valid size. A
+  countdown runs for at most about 68 years and a text shows at most 1,024 characters — from the server or
+  from `setCountdownDuration` and `setText`, whose return values are unchanged.
+- A widget and your app stay on the same session after a member signs out and back in.
+- An image that declares one side takes the other from the picture as it is drawn, so a photo stored with a
+  quarter-turn rotation — the usual case for a portrait phone photo — keeps its proportions.
 - Less memory after `Tapp.configure`, and the SDK opens no network session until its first request.
 
 ### TappWidgets
 
 - **Ships its own privacy manifest**, declaring the two required-reason APIs it calls (System Boot Time and
-  File Timestamp). Without it an App Store upload could draw ITMS-91053. Nothing to do on your side.
+  File Timestamp), as App Store uploads expect. Nothing to do on your side.
 - **A widget drawing what your app pre-warmed sends no network request**, and the app's pre-warm now fetches
   the artwork of every screen the campaign declares. Moving to another screen — a tap, a countdown ending,
   `moveToEntry` — shows its images at once instead of downloading them in the extension. The first launch
   after a content change downloads more in the app.
 - Lower memory in the widget extension: a render decodes each image once however many times it is drawn,
   and a placeholder decodes none.
-- The app no longer asks WidgetKit to reload until a Tapp widget has been drawn on this install, which
-  makes launch cheaper for a player who never added one. A widget added later draws the pre-warmed content
-  on its own first request.
-- Picture in Picture can no longer crash your app at start if a future iOS removes the private call that
-  sends the app to the background; the window then opens over the app instead.
-- Editing a stored screen that holds a number JSON cannot write back returns `false` instead of aborting.
+- The app asks WidgetKit to reload only once a Tapp widget has been drawn on this install, which makes
+  launch cheaper for a player who never added one. A widget added later draws the pre-warmed content on its
+  own first request.
+- Picture in Picture adapts if a future iOS changes how an app is sent to the background: the window then
+  opens over the app instead.
+- Editing a stored screen that holds a number JSON cannot represent returns `false`.
 
 ### TappLiveActivities
 
 - A pushed start time, anchor or duration that no device can represent — infinite, not a number, or out of
-  range — reads as absent instead of crashing the app on the tap that opens the card.
+  range — reads as absent.
 - A content-state variable nested deeper than 32 levels is skipped; the rest of the state still applies.
 
 ## [2.1.0] — 2026-09-27
@@ -311,8 +298,8 @@ your App Store privacy answers need them.
 Adds **home-screen widgets**, and ships the SDK as **three frameworks** instead of one. The second part is a
 breaking change inside a minor version, deliberately: 2.0.0 shipped Live Activities only, this is the first
 release with a second surface, and splitting now is what keeps a widgets-only app from linking ActivityKit
-for ever after. **An app on `from: "2.0.0"` will not build against 2.1.0 until it follows the three steps
-below** — pin `exact: "2.0.0"` until you are ready.
+for ever after. **An app on `from: "2.0.0"` needs the three steps below to build against 2.1.0** — pin
+`exact: "2.0.0"` until you are ready.
 
 1. Replace the `TappGo` library with `Tapp`, plus `TappLiveActivities` and/or `TappWidgets`.
 2. `import TappGo` → `import Tapp`, and import each surface where you use it.
@@ -356,11 +343,10 @@ below** — pin `exact: "2.0.0"` until you are ready.
   was.
 - A widget action that both advances the campaign and opens a deep link now does both.
 
-### Fixed
+### Improved
 
-- Widget designs place their elements as authored again. Layout work done for Live Activities in 2.0.0 had
-  changed how a widget's positions were read, which moved every element toward the top-left of its
-  container. Live Activity rendering is unchanged. No configuration change is needed on your side.
+- Widget designs place their elements exactly as authored. Live Activity rendering is unchanged, and no
+  configuration change is needed on your side.
 
 ### Cross-platform (React Native, Cordova, Unity, Flutter)
 
